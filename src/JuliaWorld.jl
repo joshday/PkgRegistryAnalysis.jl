@@ -1,26 +1,45 @@
 module JuliaWorld
 
-using ProgressMeter
+using DataFrames
+using OrderedCollections
+using Pkg.TOML: parsefile
+using AbstractTrees
 
-function authors_in_general()
-    res = String[]
-    path = joinpath(homedir(), ".julia", "registries", "General")
-    @showprogress for letter in string.('A':'Z')
-        for pkg in readdir(joinpath(path, letter))
-            s = read(joinpath(path, letter, pkg, "Package.toml"), String)
-            m = match(r"repo = \"(.*?).git\"", s)
-            if isnothing(m)
-                @warn "no match for Package.toml:" s
-            else
-                out = m.match
-                out = replace(out, r"repo = \"https://(.*?).com/" => "")
-                out = replace(out, ".jl" => "")
-                out = replace(out, ".git" => "")
-                push!(res, split(out, '/')[1])
-            end
-        end
-    end
-    sort!(unique(res))
+#-----------------------------------------------------------------------------# tree stuff
+struct Registry
+    path::String 
+    Registry(path = joinpath(homedir(), ".julia", "registries", "General")) = new(path)
+end
+
+struct Letter 
+    path::String
+end
+
+struct Package 
+    path::String 
+end
+
+AbstractTrees.children(r::Registry) = Letter.(joinpath.([r.path], string.('A':'Z')))
+AbstractTrees.children(l::Letter) = Package.(joinpath.([l.path], readdir(l.path)))
+AbstractTrees.children(p::Package) = ()
+
+#-----------------------------------------------------------------------------# package_data
+function package_data(registrypath = joinpath(homedir(), ".julia", "registries", "General"))
+    DataFrame(retrieve_package_data(row.path) for row in AbstractTrees.Leaves(Registry(registrypath)))  
+end
+
+function retrieve_package_data(path::String)
+    package = parsefile(joinpath(path, "Package.toml"))
+    versions = sort(parsefile(joinpath(path, "Versions.toml")))
+    ( 
+        name = package["name"],
+        repo = package["repo"],
+        uuid = package["uuid"],
+        latest = last(collect(keys(versions))),
+        versions = Dict(k => v["git-tree-sha1"] for (k,v) in pairs(versions)),
+        deps = isfile(joinpath(path, "Deps.toml")) ? sort(parsefile(joinpath(path, "Deps.toml"))) : nothing,
+        compat = isfile(joinpath(path, "Compat.toml")) ? sort(parsefile(joinpath(path, "Compat.toml"))) : nothing
+    )
 end
 
 end # module
