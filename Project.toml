@@ -3,6 +3,9 @@ uuid = "79a090ed-8584-41a4-8d70-fa3e7486a87e"
 authors = ["joshday <emailjoshday@gmail.com>"]
 version = "0.1.0"
 
+[deps]
+ProgressMeter = "92933f4c-e287-5a05-a399-4b506db050ca"
+
 [compat]
 julia = "1"
 
