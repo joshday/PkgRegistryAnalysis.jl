@@ -42,4 +42,9 @@ function retrieve_package_data(path::String)
     )
 end
 
+function dependents(df::DataFrame, pkg::String)
+    inds = findall(x -> !isnothing(x) && any(y -> pkg in keys(y), values(x)), df.deps)
+    df[inds, :]
+end
+
 end # module
