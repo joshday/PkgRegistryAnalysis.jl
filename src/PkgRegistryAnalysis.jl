@@ -1,4 +1,4 @@
-module JuliaWorld
+module PkgRegistryAnalysis
 
 using DataFrames
 using OrderedCollections
@@ -31,7 +31,7 @@ end
 function retrieve_package_data(path::String)
     package = parsefile(joinpath(path, "Package.toml"))
     versions = sort(parsefile(joinpath(path, "Versions.toml")))
-    ( 
+    return ( 
         name = package["name"],
         repo = package["repo"],
         uuid = package["uuid"],
